@@ -24,27 +24,42 @@ else
        echo "Install yum-plugin-remove-with-leaves."
        yum -y install yum-plugin-remove-with-leaves
 	   NTP_UNINSTALL_COMMAND="yum -y remove --remove-leaves ntp"
-fi
     else
        echo "yum not found. Error."
        exit 1
     fi
 fi
 
+echo ${MANAGE_COMMAND}
+echo ${NTP_UNINSTALL_COMMAND}
+
 #ntpを削除
-`${NTP_UNINSTALL_COMMAND}`
-if [ $? -gt 0 ]; then
-   echo "ntpアンインストール失敗。"
-   exit -1
+rpm -q ntp
+NTP_EXIST=`echo $?`
+if [ ${NTP_EXIST} -eq 0 ]; then
+	`bash "${NTP_UNINSTALL_COMMAND}"`
+	if [ $? -gt 0 ]; then
+   		echo "ntpアンインストール失敗。"
+   		exit -1
+	fi
+else
+	echo "ntpなし。"
 fi
 
 #chronyをインストール
-INSTALL_COMMAND="${MANAGE_COMMAND} -y install chrony && systemctl start chronyd && systemctl enable chronyd"
-`${INSTALL_COMMAND}`
-if [ $? -gt 0 ]; then
-   echo "chronyインストール失敗。"
-   exit -1
+rpm -q chrony
+CHRONY_EXIST=`echo $?`
+if [ ${CHRONY_EXIST} -eq 0 ]; then
+	echo "chronyインストール済み。"
+else
+	INSTALL_COMMAND="${MANAGE_COMMAND} -y install chrony && systemctl start chronyd && systemctl enable chronyd"
+	`${INSTALL_COMMAND}`
+	if [ $? -gt 0 ]; then
+	   echo "chronyインストール失敗。"
+	   exit -1
+	fi
 fi
+
 
 CONFIG_FILE="/etc/chrony.conf"
 
@@ -53,11 +68,17 @@ POOL_TEMP="ntp_pools.txt"
 MERGE_TEMP="ntp_sources_temp.txt"
 ADD_LIST="ntp_sources_list.txt"
 
-cp -p ${CONFIG_FILE} ${CONFIG_FILE}.`date "+%Y%m%d_%H%M%S"`
+
+BACKUP=${CONFIG_FILE}.`date "+%Y%m%d_%H%M%S"`
+cp -p ${CONFIG_FILE} ${BACKUP}
 if [ $? -gt 0 ]; then
    echo "設定ファイルバックアップ失敗。"
    exit -1
 fi
+
+echo "before"
+cat ${CONFIG_FILE}
+echo "before"
 
 cd /tmp
 if [ $? -gt 0 ]; then
@@ -98,7 +119,15 @@ if [ $? -gt 0 ]; then
    echo "既存サーバリスト更新失敗。"
    exit -1
 fi
+
+echo "after"
 cat ${CONFIG_FILE}
+echo "after"
+
+echo "diff"
+diff ${CONFIG_FILE} ${BACKUP}
+echo "diff"
+
 
 systemctl stop chronyd && systemctl start chronyd && systemctl enable chronyd && chronyc sources
 if [ $? -gt 0 ]; then
