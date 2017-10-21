@@ -1,14 +1,46 @@
 #!/bin/bash
 
-#ntを削除
-yum -y remove --remove-leaves ntp
+MANAGE_COMMAND=""
+
+NTP_UNINSTALL_COMMAND=""
+
+DNF=0
+rpm -q dnf
+DNF=`echo $?`
+
+YUM=0
+rpm -q yum
+YUM=`echo $?`
+
+if [ ${DNF} -eq 0 ]; then
+   echo "dnf found. Use dnf."
+   MANAGE_COMMAND="dnf"
+   NTP_UNINSTALL_COMMAND="dnf -y autoremove ntp"
+else
+   echo "dnf not found. Search yum."
+    if [ ${YUM} -eq 0 ]; then
+       echo "yum found. Use yum."
+       MANAGE_COMMAND="yum"
+       echo "Install yum-plugin-remove-with-leaves."
+       yum -y install yum-plugin-remove-with-leaves
+	   NTP_UNINSTALL_COMMAND="yum -y remove --remove-leaves ntp"
+fi
+    else
+       echo "yum not found. Error."
+       exit 1
+    fi
+fi
+
+#ntpを削除
+`${NTP_UNINSTALL_COMMAND}`
 if [ $? -gt 0 ]; then
    echo "ntpアンインストール失敗。"
    exit -1
 fi
 
 #chronyをインストール
-yum -y install chrony && systemctl start chronyd && systemctl enable chronyd
+INSTALL_COMMAND="${MANAGE_COMMAND} -y install chrony && systemctl start chronyd && systemctl enable chronyd"
+`${INSTALL_COMMAND}`
 if [ $? -gt 0 ]; then
    echo "chronyインストール失敗。"
    exit -1
