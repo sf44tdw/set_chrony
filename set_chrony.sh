@@ -26,7 +26,7 @@ else
 	   NTP_UNINSTALL_COMMAND="yum -y remove --remove-leaves ntp"
     else
        echo "yum not found. Error."
-       exit 1
+       exit -1
     fi
 fi
 
@@ -40,7 +40,6 @@ if [ ${NTP_EXIST} -eq 0 ]; then
 	`bash "${NTP_UNINSTALL_COMMAND}"`
 	if [ $? -gt 0 ]; then
    		echo "ntpアンインストール失敗。"
-   		exit -1
 	fi
 else
 	echo "ntpなし。"
