@@ -22,7 +22,7 @@ else
        echo "yum found. Use yum."
        MANAGE_COMMAND="yum"
        echo "Install yum-plugin-remove-with-leaves."
-       yum -y install yum-plugin-remove-with-leaves
+       `${MANAGE_COMMAND} -y install yum-plugin-remove-with-leaves`
 	   NTP_UNINSTALL_COMMAND="${MANAGE_COMMAND} -y remove --remove-leaves ntp"
     else
        echo "yum not found. Error."
