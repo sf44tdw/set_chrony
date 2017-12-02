@@ -128,9 +128,16 @@ diff ${CONFIG_FILE} ${BACKUP}
 echo "diff"
 
 
-systemctl stop chronyd && systemctl start chronyd && systemctl enable chronyd && chronyc sources
+systemctl stop chronyd && systemctl start chronyd && systemctl enable chronyd
 if [ $? -gt 0 ]; then
    echo "サービス再起動失敗。"
+   exit -1
+fi
+
+sleep 1m
+chronyc sources
+if [ $? -gt 0 ]; then
+   echo "時刻源列挙失敗。"
    exit -1
 fi
 
@@ -139,4 +146,5 @@ if [ $? -gt 0 ]; then
    echo "一時ファイル削除失敗。"
    exit -1
 fi
+
 
