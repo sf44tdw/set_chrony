@@ -15,7 +15,7 @@ YUM=`echo $?`
 if [ ${DNF} -eq 0 ]; then
    echo "dnf found. Use dnf."
    MANAGE_COMMAND="dnf"
-   NTP_UNINSTALL_COMMAND="dnf -y autoremove ntp"
+   NTP_UNINSTALL_COMMAND="${MANAGE_COMMAND} -y autoremove ntp"
 else
    echo "dnf not found. Search yum."
     if [ ${YUM} -eq 0 ]; then
@@ -23,7 +23,7 @@ else
        MANAGE_COMMAND="yum"
        echo "Install yum-plugin-remove-with-leaves."
        yum -y install yum-plugin-remove-with-leaves
-	   NTP_UNINSTALL_COMMAND="yum -y remove --remove-leaves ntp"
+	   NTP_UNINSTALL_COMMAND="${MANAGE_COMMAND} -y remove --remove-leaves ntp"
     else
        echo "yum not found. Error."
        exit -1
