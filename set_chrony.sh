@@ -37,7 +37,7 @@ echo ${NTP_UNINSTALL_COMMAND}
 rpm -q ntp
 NTP_EXIST=`echo $?`
 if [ ${NTP_EXIST} -eq 0 ]; then
-	`bash "${NTP_UNINSTALL_COMMAND}"`
+	`${NTP_UNINSTALL_COMMAND}`
 	if [ $? -gt 0 ]; then
    		echo "ntpアンインストール失敗。"
 	fi
