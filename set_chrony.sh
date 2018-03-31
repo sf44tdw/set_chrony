@@ -96,7 +96,7 @@ EOS
 )
 echo "${HOGE}" | sort | uniq > ${SERVER_TEMP_ADD_IN}
 if [ $? -gt 0 ]; then
-   echo "現行サーバリスト取得失敗。"
+   echo "追加サーバリスト取得失敗。"
    exit -1
 fi
 
@@ -111,7 +111,7 @@ while read line
 do
  echo "${NTP_SERVER_PREFIX} ${line} ${USE_IBURST}" >> ${SERVER_TEMP_ADD_OUT}
  if [ $? -gt 0 ]; then
-    echo "追加サーバリスト作成失敗。"
+    echo "追加サーバリスト書式変更失敗。"
     exit -1
  fi
 done < ${SERVER_TEMP_ADD_IN}
