@@ -88,10 +88,6 @@ fi
 HOGE=$(cat << EOS
 ntp.nict.jp
 ntp1.jst.mfeed.ad.jp
-s2csntp.miz.nao.ac.jp
-time.google.com
-ats1.e-timing.ne.jp
-ntp.dnsbalance.ring.gr.jp
 EOS
 )
 echo "${HOGE}" | sort | uniq > ${SERVER_TEMP_ADD_IN}
