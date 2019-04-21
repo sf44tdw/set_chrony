@@ -1,5 +1,13 @@
 #!/bin/bash
 
+#多重起動防止機講
+
+# 同じ名前のプロセスが起動していたら起動しない。
+_lockfile="/tmp/`basename $0`.lock"
+ln -s /dummy $_lockfile 2> /dev/null || { echo 'Cannot run multiple instance.'; exit 9; }
+trap "rm $_lockfile; exit" -1 1 2 3 4 5 6 7 8 15
+
+
 MANAGE_COMMAND=""
 
 NTP_UNINSTALL_COMMAND=""
@@ -145,7 +153,7 @@ awk '!a[$0]++' ${MERGE_TEMP} > ${ADD_LIST}
 if [ $? -gt 0 ]; then
    echo "重複除去失敗。"
    exit -1
-fi 
+fi
 #cat ${ADD_LIST}
 
 sed -i '/^.*pool.*iburst$/d' ${CONFIG_FILE} && sed -i '/^.*server.*iburst$/d' ${CONFIG_FILE} && cat ${ADD_LIST} >> ${CONFIG_FILE}
@@ -182,4 +190,4 @@ if [ $? -gt 0 ]; then
    exit -1
 fi
 
-
+rm $_lockfile
