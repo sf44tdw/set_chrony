@@ -1,9 +1,41 @@
 #!/bin/bash
 
-#多重起動防止機講
+usage_exit() {
+        echo "Usage: $0 [-f]" 1>&2
+        echo 'chronyの設定ファイルをバックアップし、このファイルに書かれたNTPサーバを追記する。
+        -u 設定(既存のロックファイルを削除して終了する。)' 1>&2
+        exit 1
+}
 
+
+ENABLE_u="f"
+
+
+while getopts "u" OPT
+do
+    case $OPT in
+        u)  ENABLE_u="t"
+            ;;
+        :|\?) usage_exit
+            ;;
+    esac
+done
+
+shift $((OPTIND - 1))
+
+#多重起動防止機講
 # 同じ名前のプロセスが起動していたら起動しない。
 _lockfile="/tmp/`basename $0`.lock"
+
+#ロックファイル削除用。
+if [ "${ENABLE_f}" == "t" ]; then
+  echo "ロックファイルがあれば削除して終了する。"
+   if [ -e "${_lockfile}" ]; then
+     rm "${_lockfile}"
+   fi
+ exit 0
+fi
+
 ln -s /dummy "${_lockfile}" 2> /dev/null || { echo 'Cannot run multiple instance.'; exit 9; }
 trap 'rm "${_lockfile}"; exit' 1 2 3 4 5 6 7 8 15
 
@@ -12,68 +44,25 @@ readonly PACKAGE_NAME_CHRONY="chrony"
 
 readonly PACKAGE_NAME_NTP="ntp"
 
-MANAGE_COMMAND=""
-
-NTP_UNINSTALL_COMMAND=""
-
-DNF=0
-rpm -q dnf
-DNF="${?}"
-
-YUM=0
-rpm -q yum
-YUM="${?}"
-
-if [ "${DNF}" -eq 0 ]; then
-   echo "DNFを使用する。"
-   MANAGE_COMMAND="dnf"
-   NTP_UNINSTALL_COMMAND="${MANAGE_COMMAND} -y autoremove ntp"
-else
-   echo "DNFが無いので、YUMを捜索する。"
-    if [ "${YUM}" -eq 0 ]; then
-       echo "YUMを発見したので、YUMを使用する。"
-       MANAGE_COMMAND="yum"
-       echo "yum-plugin-remove-with-leavesプラグインをインストールする。"
-       YUM_PLUGIN_INSTALL="${MANAGE_COMMAND} -y install yum-plugin-remove-with-leaves"
-       $("${YUM_PLUGIN_INSTALL}")
-       YUM_PLUGIN_INSTALLED="${?}"
-       if [ "${YUM_PLUGIN_INSTALLED}" -gt 0 ]; then
-	       echo "Yum-plugin-remove-with-leavesのインストールに失敗したので終了する。"
-	       exit 1
-       fi
-       NTP_UNINSTALL_COMMAND="${MANAGE_COMMAND} -y remove --remove-leaves ntp"
-    else
-       echo "YUMを発見できなかったので終了する。"
-       exit 1
-    fi
-fi
-
-#ntpを削除
 rpm -q "${PACKAGE_NAME_NTP}"
 NTP_EXIST="${?}"
-
 if [ "${NTP_EXIST}" -eq 0 ]; then
-	$("${NTP_UNINSTALL_COMMAND}")
-	if [ "${?}" -gt 0 ]; then
-		echo "ntpアンインストールができなかったので終了する。"
-		exit 1
-	fi
+  if [ "${?}" -gt 0 ]; then
+    echo "ntpがインストールされていたので終了する。"
+    exit 1
+  fi
 else
 	echo "ntpなし。"
 fi
 
-#chronyをインストール
+#chrony確認
 rpm -q "${PACKAGE_NAME_CHRONY}"
 CHRONY_EXIST="${?}"
 if [ "${CHRONY_EXIST}" -eq 0 ]; then
-	echo "chronyインストール済みのためインストール処理をせずに継続する。"
+  echo "chronyインストール済みのためインストール処理をせずに継続する。"
 else
-	INSTALL_COMMAND="${MANAGE_COMMAND} -y install chrony && systemctl start chronyd && systemctl enable chronyd"
-	$("${INSTALL_COMMAND}")
-	if [ "${?}" -gt 0 ]; then
-	   echo "chronyインストール失敗のため終了する。"
-	   exit 1
-	fi
+  echo "chronyがインストールされていないので終了する。"
+  exit 1
 fi
 
 CONFIG_FILE="/etc/chrony.conf"
