@@ -8,13 +8,18 @@ usage_exit() {
 }
 
 
-ENABLE_u="f"
+readonly NOT_REMOVE_LOCK_FILE='f'
+
+readonly REMOVE_LOCK_FILE='t'
+
+
+ENABLE_u="${NOT_REMOVE_LOCK_FILE}"
 
 
 while getopts "u" OPT
 do
     case $OPT in
-        u)  ENABLE_u="t"
+        u)  ENABLE_u="${REMOVE_LOCK_FILE}"
             ;;
         :|\?) usage_exit
             ;;
@@ -28,7 +33,7 @@ shift $((OPTIND - 1))
 _lockfile="/tmp/`basename $0`.lock"
 
 #ロックファイル削除用。
-if [ "${ENABLE_f}" == "t" ]; then
+if [ "${ENABLE_u}" == "${REMOVE_LOCK_FILE}" ]; then
   echo "ロックファイルがあれば削除して終了する。"
    if [ -e "${_lockfile}" ]; then
      rm "${_lockfile}"
