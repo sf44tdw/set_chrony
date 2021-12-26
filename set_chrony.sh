@@ -36,7 +36,7 @@ _lockfile="/tmp/`basename $0`.lock"
 if [ "${ENABLE_u}" == "${REMOVE_LOCK_FILE}" ]; then
   echo "ロックファイルがあれば削除して終了する。"
    if [ -e "${_lockfile}" ]; then
-     rm "${_lockfile}"
+     rm "${_lockfile}";exit $?
    fi
  exit 0
 fi
