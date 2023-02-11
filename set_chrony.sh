@@ -44,7 +44,7 @@ ln -s /dummy "${_lockfile}" 2>/dev/null || {
 	echo 'Cannot run multiple instance.'
 	exit 9
 }
-trap 'rm "${_lockfile}"; exit' SIGHUP SIGINT SIGQUIT SIGTER
+trap 'rm "${_lockfile}"; exit' SIGHUP SIGINT SIGQUIT SIGTERM
 
 readonly PACKAGE_NAME_CHRONY="chrony"
 
