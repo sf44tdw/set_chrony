@@ -28,7 +28,7 @@ shift $((OPTIND - 1))
 
 #多重起動防止機講
 # 同じ名前のプロセスが起動していたら起動しない。
-_lockfile="/tmp/$(basename "${0}").lock"
+readonly _lockfile="/tmp/$(basename "${0}").lock"
 
 #ロックファイル削除用。
 if [ "${ENABLE_u}" == "${REMOVE_LOCK_FILE}" ]; then
@@ -51,7 +51,7 @@ readonly PACKAGE_NAME_CHRONY="chrony"
 readonly PACKAGE_NAME_NTP="ntp"
 
 rpm -q "${PACKAGE_NAME_NTP}"
-NTP_EXIST="${?}"
+readonly NTP_EXIST="${?}"
 if [ "${NTP_EXIST}" -eq 0 ]; then
 	echo "ntpがインストールされていたので終了する。"
 	exit 1
@@ -61,7 +61,7 @@ fi
 
 #chrony確認
 rpm -q "${PACKAGE_NAME_CHRONY}"
-CHRONY_EXIST="${?}"
+readonly CHRONY_EXIST="${?}"
 if [ "${CHRONY_EXIST}" -eq 0 ]; then
 	echo "chronyインストール済みのため継続する。"
 else
@@ -69,17 +69,17 @@ else
 	exit 1
 fi
 
-CONFIG_FILE="/etc/chrony.conf"
-SERVER_TEMP_ADD_IN="ntp_servers_add_in.txt"
-SERVER_TEMP_ADD_OUT="ntp_servers_add_out.txt"
-SERVER_TEMP="ntp_servers.txt"
-POOL_TEMP="ntp_pools.txt"
-MERGE_TEMP="ntp_sources_temp.txt"
-ADD_LIST="ntp_sources_list.txt"
+readonly CONFIG_FILE="/etc/chrony.conf"
+readonly SERVER_TEMP_ADD_IN="ntp_servers_add_in.txt"
+readonly SERVER_TEMP_ADD_OUT="ntp_servers_add_out.txt"
+readonly SERVER_TEMP="ntp_servers.txt"
+readonly POOL_TEMP="ntp_pools.txt"
+readonly MERGE_TEMP="ntp_sources_temp.txt"
+readonly ADD_LIST="ntp_sources_list.txt"
 
-NOWTIME=$(date "+%Y%m%d_%H%M%S")
+readonly NOWTIME=$(date "+%Y%m%d_%H%M%S")
 
-BACKUP="${CONFIG_FILE}.${NOWTIME}"
+readonly BACKUP="${CONFIG_FILE}.${NOWTIME}"
 if ! cp -p "${CONFIG_FILE}" "${BACKUP}"; then
 	echo "設定ファイルバックアップ失敗。"
 	exit 1
@@ -95,7 +95,7 @@ if ! cd /tmp; then
 fi
 
 #追加したいntpサーバのリストをヒアドキュメントに記載する。
-HOGE=$(
+readonly HOGE=$(
 	cat <<EOS
 ntp.nict.jp
 ntp1.jst.mfeed.ad.jp
@@ -107,10 +107,6 @@ if ! echo "${HOGE}" | sort | uniq >"${SERVER_TEMP_ADD_IN}"; then
 	exit 1
 fi
 
-#echo
-#cat ${SERVER_TEMP_ADD_IN}
-#echo
-
 NTP_SERVER_PREFIX="server"
 USE_IBURST="iburst"
 
@@ -120,41 +116,53 @@ while read -r line; do
 		exit 1
 	fi
 done <"${SERVER_TEMP_ADD_IN}"
-#cat ${SERVER_TEMP_ADD_OUT}
 
 if ! sed -n -e '/^.*server.*iburst$/p' "${CONFIG_FILE}" | sort | uniq >"${SERVER_TEMP}"; then
 	echo "現行サーバリスト作成失敗。"
 	exit 1
 fi
-#cat ${SERVER_TEMP}
 
 if ! cat "${SERVER_TEMP_ADD_OUT}" >>"${SERVER_TEMP}"; then
 	echo "現行サーバリストへの追加サーバリストの追記失敗。"
 	exit 1
 fi
-#cat ${SERVER_TEMP}
 
 if ! sed -n -e '/^.*pool.*iburst$/p' "${CONFIG_FILE}" | sort | uniq >"${POOL_TEMP}"; then
 	echo "現行プールリスト作成失敗。"
 	exit 1
 fi
-#cat ${POOL_TEMP}
 
-if ! touch "${MERGE_TEMP}" && cat "${SERVER_TEMP}" | sort | uniq >>"${MERGE_TEMP}" && cat "${POOL_TEMP}" | sort | uniq >>"${MERGE_TEMP}"; then
-	echo "サーバリスト、プールリストマージ、重複排除失敗。"
+readonly MERGE_ERROR_MESSAGE_COMMON="サーバリスト、プールリストマージ、重複排除失敗。"
+if ! touch "${MERGE_TEMP}"; then
+	echo "${MERGE_ERROR_MESSAGE_COMMON}_1"
 	exit 1
 fi
-#cat ${MERGE_TEMP}
+if ! cat "${SERVER_TEMP}" | sort | uniq >>"${MERGE_TEMP}"; then
+        echo "${MERGE_ERROR_MESSAGE_COMMON}_2"
+	exit 1
+fi
+if ! cat "${POOL_TEMP}" | sort | uniq >>"${MERGE_TEMP}"; then
+        echo "${MERGE_ERROR_MESSAGE_COMMON}_3"
+	exit 1
+fi
 
 if ! awk '!a[$0]++' "${MERGE_TEMP}" >"${ADD_LIST}"; then
 	echo "重複除去失敗。"
 	exit 1
 fi
-#cat ${ADD_LIST}
 
-if ! sed -i '/^.*pool.*iburst$/d' "${CONFIG_FILE}" && sed -i '/^.*server.*iburst$/d' "${CONFIG_FILE}" && cat "${ADD_LIST}" >>"${CONFIG_FILE}"; then
-	echo "既存サーバリスト更新失敗。"
+readonly UPDATE_CONFIG_ERROR_MESSAGE_COMMON="既存サーバリスト更新失敗。"
+if ! sed -i '/^.*pool.*iburst$/d' "${CONFIG_FILE}"; then
+	echo "${UPDATE_CONFIG_ERROR_MESSAGE_COMMON}_1"
 	exit 1
+fi
+if ! sed -i '/^.*server.*iburst$/d' "${CONFIG_FILE}"; then
+        echo "${UPDATE_CONFIG_ERROR_MESSAGE_COMMON}_2"
+        exit 1
+fi
+if ! cat "${ADD_LIST}" >>"${CONFIG_FILE}"; then
+        echo "${UPDATE_CONFIG_ERROR_MESSAGE_COMMON}_3"
+        exit 1
 fi
 
 echo "after"
