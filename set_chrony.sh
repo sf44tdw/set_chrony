@@ -87,12 +87,13 @@ else
 fi
 
 readonly CONFIG_FILE="/etc/chrony.conf"
-readonly SERVER_TEMP_ADD_IN="ntp_servers_add_in.txt"
-readonly SERVER_TEMP_ADD_OUT="ntp_servers_add_out.txt"
-readonly SERVER_TEMP="ntp_servers.txt"
-readonly POOL_TEMP="ntp_pools.txt"
-readonly MERGE_TEMP="ntp_sources_temp.txt"
-readonly ADD_LIST="ntp_sources_list.txt"
+readonly TEMP_DIR="/tmp"
+readonly SERVER_TEMP_ADD_IN="${TEMP_DIR}/ntp_servers_add_in.txt"
+readonly SERVER_TEMP_ADD_OUT="${TEMP_DIR}/ntp_servers_add_out.txt"
+readonly SERVER_TEMP="${TEMP_DIR}/ntp_servers.txt"
+readonly POOL_TEMP="${TEMP_DIR}/ntp_pools.txt"
+readonly MERGE_TEMP="${TEMP_DIR}/ntp_sources_temp.txt"
+readonly ADD_LIST="${TEMP_DIR}/ntp_sources_list.txt"
 
 readonly NOWTIME=$(date "+%Y%m%d_%H%M%S")
 
@@ -105,11 +106,6 @@ fi
 echo "before"
 cat "${CONFIG_FILE}"
 echo "before"
-
-if ! cd /tmp; then
-	echo "/tmpへの移動失敗。"
-	delete_lock_file_and_exit 1
-fi
 
 #追加したいntpサーバのリストをヒアドキュメントに記載する。
 readonly HOGE=$(
@@ -154,12 +150,14 @@ if ! touch "${MERGE_TEMP}"; then
 	echo "${MERGE_ERROR_MESSAGE_COMMON}_1"
 	delete_lock_file_and_exit 1
 fi
+
 if ! cat "${SERVER_TEMP}" | sort | uniq >>"${MERGE_TEMP}"; then
-        echo "${MERGE_ERROR_MESSAGE_COMMON}_2"
+	echo "${MERGE_ERROR_MESSAGE_COMMON}_2"
 	delete_lock_file_and_exit 1
 fi
+
 if ! cat "${POOL_TEMP}" | sort | uniq >>"${MERGE_TEMP}"; then
-        echo "${MERGE_ERROR_MESSAGE_COMMON}_3"
+	echo "${MERGE_ERROR_MESSAGE_COMMON}_3"
 	delete_lock_file_and_exit 1
 fi
 
@@ -173,13 +171,15 @@ if ! sed -i '/^.*pool.*iburst$/d' "${CONFIG_FILE}"; then
 	echo "${UPDATE_CONFIG_ERROR_MESSAGE_COMMON}_1"
 	delete_lock_file_and_exit 1
 fi
+
 if ! sed -i '/^.*server.*iburst$/d' "${CONFIG_FILE}"; then
-        echo "${UPDATE_CONFIG_ERROR_MESSAGE_COMMON}_2"
-        delete_lock_file_and_exit 1
+	echo "${UPDATE_CONFIG_ERROR_MESSAGE_COMMON}_2"
+	delete_lock_file_and_exit 1
 fi
+
 if ! cat "${ADD_LIST}" >>"${CONFIG_FILE}"; then
-        echo "${UPDATE_CONFIG_ERROR_MESSAGE_COMMON}_3"
-        delete_lock_file_and_exit 1
+	echo "${UPDATE_CONFIG_ERROR_MESSAGE_COMMON}_3"
+	delete_lock_file_and_exit 1
 fi
 
 echo "after"
@@ -190,18 +190,28 @@ echo "diff"
 diff "${CONFIG_FILE}" "${BACKUP}"
 echo "diff"
 
-if ! systemctl restart chronyd  && systemctl enable chronyd; then
+sleep 1m
+
+if ! systemctl enable chronyd; then
+	echo "サービス有効化失敗。"
+	delete_lock_file_and_exit 1
+fi
+
+sleep 1m
+
+if ! systemctl restart chronyd; then
 	echo "サービス再起動失敗。"
 	delete_lock_file_and_exit 1
 fi
 
 sleep 1m
+
 if ! chronyc sources; then
 	echo "時刻源列挙失敗。"
 	delete_lock_file_and_exit 1
 fi
 
-if ! cd /tmp && rm -f "${SERVER_TEMP}" "${POOL_TEMP}" "${MERGE_TEMP}" "${ADD_LIST}"; then
+if ! rm -f "${SERVER_TEMP_ADD_IN}" "${SERVER_TEMP_ADD_OUT}" "${SERVER_TEMP}" "${POOL_TEMP}" "${MERGE_TEMP}" "${ADD_LIST}"; then
 	echo "一時ファイル削除失敗。"
 	delete_lock_file_and_exit 1
 fi
