@@ -211,7 +211,7 @@ if ! chronyc sources; then
 	delete_lock_file_and_exit 1
 fi
 
-if ! rm -f "${SERVER_TEMP}" "${POOL_TEMP}" "${MERGE_TEMP}" "${ADD_LIST}"; then
+if ! rm -f "${SERVER_TEMP_ADD_IN}" "${SERVER_TEMP_ADD_OUT}" "${SERVER_TEMP}" "${POOL_TEMP}" "${MERGE_TEMP}" "${ADD_LIST}"; then
 	echo "一時ファイル削除失敗。"
 	delete_lock_file_and_exit 1
 fi
