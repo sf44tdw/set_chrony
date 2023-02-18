@@ -1,33 +1,7 @@
 #!/bin/bash
 
-usage_exit() {
-	echo "Usage: $0 [-f]" 1>&2
-	echo 'chronyの設定ファイルをバックアップし、このファイルに書かれたNTPサーバを追記する。
-        -u 設定(既存のロックファイルを削除して終了する。)' 1>&2
-	exit 1
-}
-
-readonly NOT_REMOVE_LOCK_FILE='f'
-
-readonly REMOVE_LOCK_FILE='t'
-
-ENABLE_u="${NOT_REMOVE_LOCK_FILE}"
-
-while getopts "u" OPT; do
-	case $OPT in
-	u)
-		ENABLE_u="${REMOVE_LOCK_FILE}"
-		;;
-	: | \?)
-		usage_exit
-		;;
-	esac
-done
-
-shift $((OPTIND - 1))
-
 #このスクリプトの名前。
-readonly MY_NAME=$(basename "${0}")
+readonly MY_NAME="$(basename "${0}")"
 
 #ロックファイルのパス
 _lockfile="/tmp/${MY_NAME}.lock"
@@ -48,6 +22,32 @@ function delete_lock_file_and_exit() {
 	fi
 	exit "${EXIT_CODE}"
 }
+
+readonly NOT_REMOVE_LOCK_FILE='f'
+
+readonly REMOVE_LOCK_FILE='t'
+
+ENABLE_u="${NOT_REMOVE_LOCK_FILE}"
+
+function usage_exit() {
+	echo "Usage: $0 [-f]" 1>&2
+	echo 'chronyの設定ファイルをバックアップし、このファイルに書かれたNTPサーバを追記する。
+        -u 設定(既存のロックファイルを削除して終了する。)' 1>&2
+	exit 1
+}
+
+while getopts "u" OPT; do
+	case $OPT in
+	u)
+		ENABLE_u="${REMOVE_LOCK_FILE}"
+		;;
+	: | \?)
+		usage_exit
+		;;
+	esac
+done
+
+shift $((OPTIND - 1))
 
 #ロックファイル削除用。
 if [ "${ENABLE_u}" == "${REMOVE_LOCK_FILE}" ]; then
